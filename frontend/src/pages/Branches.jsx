@@ -14,7 +14,7 @@ function Branches() {
     name: "Ibadan Head Office",
     code: "IBD-001",
     location: "Ibadan, Oyo State",
-    manager: "Not Assigned",
+    manager: "Mr. Wale Dahunsi",
     status: "Active",
   },
   {
@@ -22,7 +22,7 @@ function Branches() {
     name: "Abuja Branch",
     code: "ABJ-001",
     location: "Abuja, FCT",
-    manager: "Not Assigned",
+    manager: "Mr. Sola",
     status: "Active",
   },
   {
@@ -31,7 +31,7 @@ function Branches() {
     code: "KAN-001",
     location: "Kano, Kano State",
     manager: "Not Assigned",
-    status: "Inactive",
+    status: "Active",
   },
 ]);
 
@@ -103,9 +103,21 @@ const handleSubmit = (event) => {
 };
 
 
-const handleDelete = (id) => {
-  setBranches (branches.filter((branch) => branch.id !== id));
+const handleDeactivate = (id) => {
+  setBranches (
+    branches.map((branch) => branch.id === id
+  ? {...branch, status: "Inactive"} 
+: branch));
 };
+
+//handle Reactivate
+const handleReactivate = (id) => {
+  setBranches(
+      branches.map((branch) =>
+        branch.id === id
+      ? {...branch, status:"Active"} : branch )
+  )
+}
 
 const handleEdit = (branch)=> {
 setFormData({
@@ -129,7 +141,9 @@ setShowForm(true);
           <p>Manage company branches and their locations.</p>
         </div>
 
-        <button className="primary-button" onClick={() => setShowForm(!showForm)}>
+        <button className="primary-button" onClick={() =>
+          { setEditingBranchId(null);
+            setShowForm(!showForm)}}>
           + Add Branch
         </button>
       </div>
@@ -282,10 +296,15 @@ setShowForm(true);
           View
         </button>
       
-
+          { branch.status === "Active"? (
           <button className="action-button"
-          onClick={() => handleDelete(branch.id)}
-          > Delete</button>
+          onClick={() => handleDeactivate(branch.id)}
+          > Deactivate</button>) :
+
+          (<button className="action-button"
+          onClick={() => handleReactivate(branch.id)}
+          > Re-Activate</button>)
+          }
           </td>
 
     </tr>
