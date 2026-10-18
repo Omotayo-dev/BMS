@@ -2,6 +2,9 @@ import { useState } from "react";
 function Branches() {
 
     const [showForm, setShowForm] =  useState(false);
+    const [viewingBranch, setViewingBranch] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState("All")
 
     //to edit branch
     const [editingBranchId, setEditingBranchId] = useState(null);
@@ -46,17 +49,65 @@ const [formData, setFormData] = useState({
 
 });
 
+const [errorMessage, setErrorMessage] = useState("");
+
+
+//Reset form to empty
+const resetForm =() => {
+    setFormData({
+    name: "",
+    code: "",
+    state: "",
+    phone: "",
+    address: "",
+    manager: "",
+    status: "Active",
+  });
+
+  setErrorMessage("");
+  }
+
 const handleChange = (event) => {
     const {name, value} = event.target;
 
     setFormData({
         ...formData, [name]: value,
+
     })
+
+    setErrorMessage("")
     
 };
 
 const handleSubmit = (event) => {
   event.preventDefault();
+
+  if (!formData.name.trim() )
+  {setErrorMessage("Branch Name is Required")
+    return;
+  }
+  else if (!formData.code.trim()){ setErrorMessage(" Branch Code is required");
+    return;
+  }else if (!formData.state.trim())
+{
+    setErrorMessage("Branch   State is required")
+    return
+  }
+  
+  
+  const enteredCode = formData.code.trim().toUpperCase();
+  
+  const duplicateCode = branches.some((branch) => 
+  (branch.code || "").trim().toUpperCase()=== enteredCode && branch.id !== editingBranchId);
+ 
+  if (duplicateCode) {
+    setErrorMessage ("This branch code already Exist. Please enter a different Code");
+
+    return;
+
+  }
+
+  setErrorMessage("");
 
   if (editingBranchId !== null) {
     // EDIT EXISTING BRANCH
@@ -66,9 +117,12 @@ const handleSubmit = (event) => {
           ? {
               ...branch,
               name: formData.name,
-              code: formData.code,
+              code: formData.code.trim().toUpperCase(),
               location: formData.state,
               manager: formData.manager || "Not Assigned",
+              phone: formData.phone,
+              address: formData.address,
+
               status: formData.status,
             }
           : branch
@@ -79,12 +133,14 @@ const handleSubmit = (event) => {
     const newBranch = {
       id: Date.now(),
       name: formData.name,
-      code: formData.code,
+      code: formData.code.trim().toUpperCase(),
       location: formData.state,
+      phone: formData.phone,
+      address: formData.address,
       manager: formData.manager || "Not Assigned",
       status: formData.status,
     };
-
+      console.log("New Branch Code:", newBranch.code)
     setBranches([...branches, newBranch]);
   }
 
@@ -97,6 +153,8 @@ const handleSubmit = (event) => {
     manager: "",
     status: "Active",
   });
+
+  
 
   setEditingBranchId(null);
   setShowForm(false);
@@ -124,15 +182,33 @@ setFormData({
   name: branch.name,
   code: branch.code,
   state: branch.location,
-  phone: "",
-  address: "",
+  phone: branch.phone,
+  address: branch.address,
   manager: branch.manager,
   status: branch.status,
 })
+
+
 setEditingBranchId(branch.id);
 setShowForm(true);
 
+
+
 }
+
+const filteredBranches = branches.filter((branch) => {
+  const search = searchTerm.toLowerCase();
+
+  const matchesSearch =
+   branch.name.toLowerCase().includes(search) || 
+   branch.code.toLowerCase().includes(search) || 
+   (branch.location || "").toLowerCase().includes(search) ||
+   (branch.manager || "").toLowerCase().includes(search);
+
+   const matchesStatus = statusFilter=== "All" || (branch.status || "").toLowerCase() === statusFilter.toLowerCase();
+
+   return matchesSearch && matchesStatus;
+})
   return (
     <div className="page-container">
       <div className="page-header">
@@ -142,19 +218,43 @@ setShowForm(true);
         </div>
 
         <button className="primary-button" onClick={() =>
-          { setEditingBranchId(null);
-            setShowForm(!showForm)}}>
+          { resetForm(); 
+             setShowForm(!showForm)}}>
           + Add Branch
         </button>
       </div>
 
       <div className="branch-table-container">
 
+<div className="branch-controls">
+
+{/* Search Box */}
+
+<input type = "text" className="branch-search" placeholder="Search by name, code , location or manager"
+              value = {searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+/> 
+
+{/* Status Filter*/ }
+<select className="branch-status-filter" value={statusFilter}  onChange={(e) => setStatusFilter(e.target.value)}>
+
+<option value="All"> All Branches</option>
+<option value="active"> Active Branches </option>
+<option value="inactive"> Inactive Branches </option>
+
+  </select>
+</div>
+
         {showForm && (
   <div className="branch-form-container">
-    <h3>Add New Branch</h3>
+    <h3>{editingBranchId !== null? "Edit Branch" : "Add New Branch"}</h3>
 
     <form onSubmit={handleSubmit}>
+
+      {errorMessage && (
+        <p className="error-message" style={{color:"red"}}>
+          {errorMessage}</p>
+      )}
+
       <div className="form-grid">
         <div className="form-group">
           <label>Branch Name</label>
@@ -238,13 +338,16 @@ setShowForm(true);
         <button
           type="button"
           className="cancel-button"
-          onClick={() => setShowForm(false)}
+          onClick={() => {
+            resetForm();
+            setShowForm(false)}
+          }
         >
           Cancel
         </button>
 
         <button type="submit" className="primary-button">
-          Save Branch
+          {editingBranchId !==null? "Update Branch"  : "Save Branch"}
         </button>
       </div>
     </form>
@@ -266,10 +369,10 @@ setShowForm(true);
           </thead>
 
           <tbody>
-  {branches.map((branch) => (
+  {filteredBranches.map((branch) => (
     <tr key={branch.id}>
       <td>{branch.name}</td>
-      <td>{branch.code}</td>
+      <td>{branch.code.toUpperCase()}</td>
       <td>{branch.location}</td>
       <td>{branch.manager}</td>
 
@@ -292,7 +395,7 @@ setShowForm(true);
           > Edit</button>
           
 
-        <button className="action-button">
+        <button className="action-button" onClick={()=> setViewingBranch(branch)}>
           View
         </button>
       
@@ -312,8 +415,52 @@ setShowForm(true);
 </tbody>
         </table>
       </div>
+    
+ 
+
+
+{viewingBranch && (
+  <div className="branch-view-overlay">
+    <div className="branch-view-model">
+      <h2>BRANCH DETAILS</h2>
+
+      <p> 
+        <strong> Branch Name: </strong>  {viewingBranch.name}
+      </p>
+
+      <p> 
+        <strong> Branch Code: </strong>  {viewingBranch.code}
+      </p>
+
+      <p> 
+        <strong> State: </strong>    {viewingBranch.location}
+      </p>
+
+      <p> 
+        <strong> Phone Number: </strong> {viewingBranch.phone || "NOT PROVIDED"}
+      </p>
+
+      <p> 
+        <strong> Branch Address: </strong>  {viewingBranch.address || "NOT PROVIDED"}
+      </p>
+
+      <p> 
+        <strong> Branch Manager: </strong> {viewingBranch.manager || "NOT ASSIGNED"}
+      </p>
+
+      <p> 
+        <strong> Status: </strong> {viewingBranch.status}
+      </p>
+
+<button className="action-button" onClick={ ()=> setViewingBranch(null)}>
+  Close
+</button>
+
+
     </div>
-  );
+  </div>
+)}
+</div>    );
 }
 
 export default Branches;
